@@ -1,4 +1,8 @@
+// src/app/layout.tsx
+
 import type { Metadata } from "next";
+// ✅ 1. Import Inter from next/font/google
+import { Inter } from "next/font/google"; 
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -10,6 +14,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// ✅ 2. Configure the Inter font
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter", // This creates a CSS variable named --font-inter
 });
 
 export const metadata: Metadata = {
@@ -24,8 +34,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {/* ✅ 3. Add the Inter font variable to the body's className */}
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}
       >
         {children}
       </body>
