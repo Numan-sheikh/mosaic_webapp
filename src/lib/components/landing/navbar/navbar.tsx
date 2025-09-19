@@ -1,10 +1,11 @@
 "use client";
 
-import React from 'react';
-import CardNav from './CardNav';
+import React, { FC } from 'react';
+import CardNav, { CardNavItem } from './CardNav';
 
-const Navbar = () => {
-  const items = [
+const Navbar: FC = () => {
+  // Add the CardNavItem[] type to the items array
+  const items: CardNavItem[] = [
     {
       label: "About",
       bgColor: "#0D0716",
@@ -51,4 +52,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

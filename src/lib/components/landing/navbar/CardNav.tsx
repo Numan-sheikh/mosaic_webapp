@@ -1,10 +1,40 @@
 "use client";
 
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { FC, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ArrowUpRight } from 'lucide-react'; // Using lucide-react for the icon
 
-const CardNav = ({
+// --- TypeScript Type Definitions ---
+
+type CardNavLink = {
+  label: string;
+  href: string;
+  ariaLabel: string;
+};
+
+export type CardNavItem = {
+  label: string;
+  bgColor: string;
+  textColor: string;
+  links: CardNavLink[];
+};
+
+export interface CardNavProps {
+  logo: string;
+  logoAlt?: string;
+  items: CardNavItem[];
+  className?: string;
+  ease?: string;
+  baseColor?: string;
+  menuColor?: string;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  ctaText?: string;
+}
+
+// --- Component Implementation ---
+
+const CardNav: FC<CardNavProps> = ({
   logo,
   logoAlt = 'Logo',
   items,
@@ -14,22 +44,23 @@ const CardNav = ({
   menuColor,
   buttonBgColor,
   buttonTextColor,
-  ctaText = 'Hop On' // New prop for button text
+  ctaText = 'Hop On'
 }) => {
-  const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const navRef = useRef(null);
-  const cardsRef = useRef([]);
-  const tlRef = useRef(null);
+  const [isHamburgerOpen, setIsHamburgerOpen] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const navRef = useRef<HTMLDivElement | null>(null);
+  const cardsRef = useRef<HTMLDivElement[]>([]);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
 
-  const calculateHeight = () => {
+  const calculateHeight = (): number => {
     const navEl = navRef.current;
     if (!navEl) return 260;
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     if (isMobile) {
-      const contentEl = navEl.querySelector('.card-nav-content');
+      const contentEl = navEl.querySelector('.card-nav-content') as HTMLElement;
       if (contentEl) {
+        // Temporarily make the content visible to measure its height
         const wasVisible = contentEl.style.visibility;
         const wasPointerEvents = contentEl.style.pointerEvents;
         const wasPosition = contentEl.style.position;
@@ -40,12 +71,11 @@ const CardNav = ({
         contentEl.style.position = 'static';
         contentEl.style.height = 'auto';
 
-        contentEl.offsetHeight;
-
         const topBar = 60;
         const padding = 16;
         const contentHeight = contentEl.scrollHeight;
-
+        
+        // Restore original styles
         contentEl.style.visibility = wasVisible;
         contentEl.style.pointerEvents = wasPointerEvents;
         contentEl.style.position = wasPosition;
@@ -54,10 +84,10 @@ const CardNav = ({
         return topBar + contentHeight + padding;
       }
     }
-    return 260;
+    return 260; // Default height for desktop
   };
 
-  const createTimeline = () => {
+  const createTimeline = (): gsap.core.Timeline | null => {
     const navEl = navRef.current;
     if (!navEl) return null;
 
@@ -112,7 +142,7 @@ const CardNav = ({
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isExpanded]);
+  }, [isExpanded, ease, items]); // Added dependencies for correctness
 
   const toggleMenu = () => {
     const tl = tlRef.current;
@@ -128,11 +158,10 @@ const CardNav = ({
     }
   };
 
-  const setCardRef = (i) => (el) => {
+  const setCardRef = (i: number) => (el: HTMLDivElement | null) => {
     if (el) cardsRef.current[i] = el;
   };
 
-  // Simple check to see if the logo prop is a path or just text
   const isLogoPath = typeof logo === 'string' && logo.includes('/');
 
   return (
@@ -222,4 +251,3 @@ const CardNav = ({
 };
 
 export default CardNav;
-

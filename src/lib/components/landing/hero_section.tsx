@@ -1,13 +1,19 @@
 "use client";
 
-import React from "react";
-// We are now using the standard <img> tag, so the 'next/image' import is not strictly needed but can be left.
-import Image from "next/image"; 
-// The Navbar is no longer imported or used here.
+import React, { FC } from "react";
+import Image from "next/image";
 import Beams from "../landing/beam_bg/Beams";
 
-// An array of the image paths, reordered to match your desired layout.
-const images = [
+// Define a type for our image objects for better type safety
+type ImageType = {
+  src: string;
+  alt: string;
+  w: number;
+  h: number;
+};
+
+// An array of the image paths, now typed with ImageType
+const images: ImageType[] = [
   // Top Row
   { src: "/willo_tree 1.svg", alt: "A willow tree by the water", w: 113, h: 150 },
   { src: "/girl_in_red 1.svg", alt: "An illustration of a girl in red", w: 84, h: 150 },
@@ -18,7 +24,7 @@ const images = [
   { src: "/metro_seat_01 1.svg", alt: "An empty seat on a metro train", w: 113, h: 150 },
 ];
 
-const HeroSection = () => {
+const HeroSection: FC = () => {
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
       {/* Background remains */}
@@ -26,7 +32,7 @@ const HeroSection = () => {
         beamWidth={2}
         beamHeight={25}
         beamNumber={12}
-        lightColor="#ffffff"
+        lightColor="#ffffffff"
         speed={2}
         noiseIntensity={1.5}
         scale={0.15}
@@ -99,4 +105,3 @@ const HeroSection = () => {
 };
 
 export default HeroSection;
-

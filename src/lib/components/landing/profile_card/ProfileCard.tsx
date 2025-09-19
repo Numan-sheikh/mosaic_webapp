@@ -1,5 +1,29 @@
+"use client";
+
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import './ProfileCard.css';
+
+interface ProfileCardProps {
+  avatarUrl: string;
+  iconUrl?: string;
+  grainUrl?: string;
+  behindGradient?: string;
+  innerGradient?: string;
+  showBehindGradient?: boolean;
+  className?: string;
+  enableTilt?: boolean;
+  enableMobileTilt?: boolean;
+  mobileTiltSensitivity?: number;
+  miniAvatarUrl?: string;
+  name?: string;
+  title?: string;
+  handle?: string;
+  status?: string;
+  contactText?: string;
+  contactUrl?: string; // --- NEW PROP ADDED ---
+  showUserInfo?: boolean;
+  onContactClick?: () => void;
+}
 
 const DEFAULT_BEHIND_GRADIENT =
   'radial-gradient(farthest-side circle at var(--pointer-x) var(--pointer-y),hsla(266,100%,90%,var(--card-opacity)) 4%,hsla(266,50%,80%,calc(var(--card-opacity)*0.75)) 10%,hsla(266,25%,70%,calc(var(--card-opacity)*0.5)) 50%,hsla(266,0%,60%,0) 100%),radial-gradient(35% 52% at 55% 20%,#00ffaac4 0%,#073aff00 100%),radial-gradient(100% 100% at 50% 50%,#00c1ffff 1%,#073aff00 76%),conic-gradient(from 124deg at 50% 50%,#c137ffff 0%,#07c6ffff 40%,#07c6ffff 60%,#c137ffff 100%)';
@@ -12,18 +36,18 @@ const ANIMATION_CONFIG = {
   INITIAL_X_OFFSET: 70,
   INITIAL_Y_OFFSET: 60,
   DEVICE_BETA_OFFSET: 20
-};
+} as const;
 
-const clamp = (value, min = 0, max = 100) => Math.min(Math.max(value, min), max);
+const clamp = (value: number, min = 0, max = 100): number => Math.min(Math.max(value, min), max);
 
-const round = (value, precision = 3) => parseFloat(value.toFixed(precision));
+const round = (value: number, precision = 3): number => parseFloat(value.toFixed(precision));
 
-const adjust = (value, fromMin, fromMax, toMin, toMax) =>
+const adjust = (value: number, fromMin: number, fromMax: number, toMin: number, toMax: number): number =>
   round(toMin + ((toMax - toMin) * (value - fromMin)) / (fromMax - fromMin));
 
-const easeInOutCubic = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const easeInOutCubic = (x: number): number => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
-const ProfileCardComponent = ({
+const ProfileCardComponent: React.FC<ProfileCardProps> = ({
   avatarUrl = '<Placeholder for avatar URL>',
   iconUrl = '<Placeholder for icon URL>',
   grainUrl = '<Placeholder for grain URL>',
@@ -35,23 +59,24 @@ const ProfileCardComponent = ({
   enableMobileTilt = false,
   mobileTiltSensitivity = 5,
   miniAvatarUrl,
-  name = '',
-  title = '',
-  handle = '',
-  status = '',
-  contactText = '',
+  name = 'Javi A. Torres',
+  title = 'Software Engineer',
+  handle = 'javicodes',
+  status = 'Online',
+  contactText = 'Contact',
+  contactUrl, // --- NEW PROP DESTRUCTURED ---
   showUserInfo = true,
   onContactClick
 }) => {
-  const wrapRef = useRef(null);
-  const cardRef = useRef(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const animationHandlers = useMemo(() => {
     if (!enableTilt) return null;
 
-    let rafId = null;
+    let rafId: number | null = null;
 
-    const updateCardTransform = (offsetX, offsetY, card, wrap) => {
+    const updateCardTransform = (offsetX: number, offsetY: number, card: HTMLElement, wrap: HTMLElement) => {
       const width = card.clientWidth;
       const height = card.clientHeight;
 
@@ -78,12 +103,18 @@ const ProfileCardComponent = ({
       });
     };
 
-    const createSmoothAnimation = (duration, startX, startY, card, wrap) => {
+    const createSmoothAnimation = (
+      duration: number,
+      startX: number,
+      startY: number,
+      card: HTMLElement,
+      wrap: HTMLElement
+    ) => {
       const startTime = performance.now();
       const targetX = wrap.clientWidth / 2;
       const targetY = wrap.clientHeight / 2;
 
-      const animationLoop = currentTime => {
+      const animationLoop = (currentTime: number) => {
         const elapsed = currentTime - startTime;
         const progress = clamp(elapsed / duration);
         const easedProgress = easeInOutCubic(progress);
@@ -114,7 +145,7 @@ const ProfileCardComponent = ({
   }, [enableTilt]);
 
   const handlePointerMove = useCallback(
-    event => {
+    (event: PointerEvent) => {
       const card = cardRef.current;
       const wrap = wrapRef.current;
 
@@ -138,7 +169,7 @@ const ProfileCardComponent = ({
   }, [animationHandlers]);
 
   const handlePointerLeave = useCallback(
-    event => {
+    (event: PointerEvent) => {
       const card = cardRef.current;
       const wrap = wrapRef.current;
 
@@ -158,7 +189,7 @@ const ProfileCardComponent = ({
   );
 
   const handleDeviceOrientation = useCallback(
-    event => {
+    (event: DeviceOrientationEvent) => {
       const card = cardRef.current;
       const wrap = wrapRef.current;
 
@@ -185,21 +216,22 @@ const ProfileCardComponent = ({
 
     if (!card || !wrap) return;
 
-    const pointerMoveHandler = handlePointerMove;
-    const pointerEnterHandler = handlePointerEnter;
-    const pointerLeaveHandler = handlePointerLeave;
-    const deviceOrientationHandler = handleDeviceOrientation;
+    const pointerMoveHandler = handlePointerMove as EventListener;
+    const pointerEnterHandler = handlePointerEnter as EventListener;
+    const pointerLeaveHandler = handlePointerLeave as EventListener;
+    const deviceOrientationHandler = handleDeviceOrientation as EventListener;
 
     const handleClick = () => {
       if (!enableMobileTilt || location.protocol !== 'https:') return;
-      if (typeof window.DeviceMotionEvent.requestPermission === 'function') {
-        window.DeviceMotionEvent.requestPermission()
-          .then(state => {
+      if (typeof (window.DeviceMotionEvent as any).requestPermission === 'function') {
+        (window.DeviceMotionEvent as any)
+          .requestPermission()
+          .then((state: string) => {
             if (state === 'granted') {
               window.addEventListener('deviceorientation', deviceOrientationHandler);
             }
           })
-          .catch(err => console.error(err));
+          .catch((err: any) => console.error(err));
       } else {
         window.addEventListener('deviceorientation', deviceOrientationHandler);
       }
@@ -235,18 +267,26 @@ const ProfileCardComponent = ({
   ]);
 
   const cardStyle = useMemo(
-    () => ({
-      '--icon': iconUrl ? `url(${iconUrl})` : 'none',
-      '--grain': grainUrl ? `url(${grainUrl})` : 'none',
-      '--behind-gradient': showBehindGradient ? (behindGradient ?? DEFAULT_BEHIND_GRADIENT) : 'none',
-      '--inner-gradient': innerGradient ?? DEFAULT_INNER_GRADIENT
-    }),
+    () =>
+      ({
+        '--icon': iconUrl ? `url(${iconUrl})` : 'none',
+        '--grain': grainUrl ? `url(${grainUrl})` : 'none',
+        '--behind-gradient': showBehindGradient ? (behindGradient ?? DEFAULT_BEHIND_GRADIENT) : 'none',
+        '--inner-gradient': innerGradient ?? DEFAULT_INNER_GRADIENT
+      }) as React.CSSProperties,
     [iconUrl, grainUrl, showBehindGradient, behindGradient, innerGradient]
   );
 
+  // --- UPDATED CLICK HANDLER ---
   const handleContactClick = useCallback(() => {
-    onContactClick?.();
-  }, [onContactClick]);
+    // If a URL is provided, open it in a new tab
+    if (contactUrl) {
+      window.open(contactUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      // Otherwise, call the original onContactClick function if it exists
+      onContactClick?.();
+    }
+  }, [onContactClick, contactUrl]); // Added contactUrl to dependency array
 
   return (
     <div ref={wrapRef} className={`pc-card-wrapper ${className}`.trim()} style={cardStyle}>
@@ -261,7 +301,7 @@ const ProfileCardComponent = ({
               alt={`${name || 'User'} avatar`}
               loading="lazy"
               onError={e => {
-                const target = e.target;
+                const target = e.target as HTMLImageElement;
                 target.style.display = 'none';
               }}
             />
@@ -274,7 +314,7 @@ const ProfileCardComponent = ({
                       alt={`${name || 'User'} mini avatar`}
                       loading="lazy"
                       onError={e => {
-                        const target = e.target;
+                        const target = e.target as HTMLImageElement;
                         target.style.opacity = '0.5';
                         target.src = avatarUrl;
                       }}
