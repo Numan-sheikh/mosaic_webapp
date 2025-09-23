@@ -2,8 +2,10 @@
 
 import React, { FC, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+// --- 1. Import Firestore functions ---
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase/config';
 import { LogIn, LogOut, User as UserIcon, X } from 'lucide-react';
 import { gsap } from 'gsap';
 
@@ -39,18 +41,34 @@ const LoginModal: FC<LoginModalProps> = ({ isOpen, onClose }) => {
     });
   };
 
-  // --- UPDATED SIGN-IN HANDLER ---
+  // --- 2. UPDATED SIGN-IN HANDLER ---
   const handleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-    } catch (error: any) { // Type the error as 'any' to access its properties
-      // This is the fix: We check for specific, non-critical error codes.
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // After successful sign-in, check for a user document in Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      // If the document does NOT exist, create it.
+      if (!userDocSnap.exists()) {
+        await setDoc(userDocRef, {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          createdAt: serverTimestamp(),
+          role: 'user' // Assign 'user' role by default on creation
+        });
+      }
+      // If the document already exists, we do nothing.
+      // The AuthContext will handle reading the role.
+
+    } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-        // If the user closed the popup, we can log a simple message or do nothing.
         console.log("Sign-in process cancelled by user.");
       } else {
-        // For all other, unexpected errors, we still log them as a critical error.
         console.error("An unexpected error occurred during sign-in:", error);
       }
     }

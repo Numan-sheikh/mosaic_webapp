@@ -2,10 +2,11 @@
 
 import React, { FC, useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { gsap } from 'gsap';
-import { ArrowUpRight } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext'; // 1. Import the useAuth hook
+import { ArrowUpRight, LayoutDashboard } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
-// --- TypeScript Type Definitions (No changes needed) ---
+// --- (TypeScript definitions remain the same) ---
 type CardNavLink = {
   label: string;
   href: string;
@@ -45,12 +46,8 @@ const CardNav: FC<CardNavProps> = ({
   buttonTextColor,
   ctaText = 'Hop On'
 }) => {
-  // 2. Get user state and all necessary modal functions from the AuthContext
-  const { user, loading, openAuthModal, openLogoutModal } = useAuth();
+  const { user, isAdmin, loading, openAuthModal, openLogoutModal } = useAuth();
 
-  // The handleSignOut function is no longer needed here as it's handled by the modal
-
-  // --- (All existing animation logic remains the same) ---
   const [isHamburgerOpen, setIsHamburgerOpen] = useState<boolean>(false);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const navRef = useRef<HTMLDivElement | null>(null);
@@ -89,6 +86,7 @@ const CardNav: FC<CardNavProps> = ({
     }
     return 260;
   };
+
   const createTimeline = (): gsap.core.Timeline | null => {
     const navEl = navRef.current;
     if (!navEl) return null;
@@ -103,6 +101,7 @@ const CardNav: FC<CardNavProps> = ({
     tl.to(cardsRef.current, { y: 0, opacity: 1, duration: 0.4, ease, stagger: 0.08 }, '-=0.1');
     return tl;
   };
+
   useLayoutEffect(() => {
     if (!hasMounted) return;
     const tl = createTimeline();
@@ -112,6 +111,7 @@ const CardNav: FC<CardNavProps> = ({
       tlRef.current = null;
     };
   }, [hasMounted, ease, items]);
+
   useLayoutEffect(() => {
     if (!hasMounted) return;
     const handleResize = () => {
@@ -136,6 +136,7 @@ const CardNav: FC<CardNavProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isExpanded, hasMounted, ease, items]);
+  
   const toggleMenu = () => {
     const tl = tlRef.current;
     if (!tl) return;
@@ -149,18 +150,35 @@ const CardNav: FC<CardNavProps> = ({
       tl.reverse();
     }
   };
+
   const setCardRef = (i: number) => (el: HTMLDivElement | null) => {
     if (el) cardsRef.current[i] = el;
   };
-  if (!hasMounted) {
-    return (
-        <div className={`card-nav-container absolute left-1/2 -translate-x-1/2 w-[90%] max-w-[800px] z-[99] top-[1.2em] md:top-[2em] ${className}`}>
-            <div className="h-[60px] w-full rounded-xl shadow-md" style={{ backgroundColor: baseColor }}></div>
-        </div>
-    );
-  }
+  
   const isLogoPath = typeof logo === 'string' && logo.includes('/');
 
+  // --- THE FIX: Create a visually identical but non-interactive skeleton for the initial render ---
+  // This will be rendered on the server and on the first client paint to prevent hydration errors and feel instant.
+  if (!hasMounted) {
+    return (
+      <div className={`card-nav-container absolute left-1/2 -translate-x-1/2 w-[95%] max-w-[1100px] z-[99] top-[1.2em] md:top-[2em] ${className}`}>
+        <div className="block h-[60px] p-0 rounded-xl shadow-md relative" style={{ backgroundColor: baseColor }}>
+          <div className="absolute inset-x-0 top-0 h-[60px] grid grid-cols-3 items-center px-4 z-[2]">
+            <div className="group h-full flex flex-col items-center justify-center gap-[6px] justify-self-start">
+              <div className="w-[30px] h-[2px] bg-gray-400" />
+              <div className="w-[30px] h-[2px] bg-gray-400" />
+            </div>
+            <div className="logo-container flex items-center justify-self-center">
+               <span className="text-base font-medium text-gray-600" style={{ color: menuColor }}>{logo}</span>
+            </div>
+            <div className="hidden md:inline-flex justify-self-end">
+               <div className="card-nav-cta-button border-0 rounded-lg px-5 py-2 text-sm font-semibold bg-gray-200 text-gray-400 w-24 h-10" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -202,20 +220,31 @@ const CardNav: FC<CardNavProps> = ({
             )}
           </div>
           
-          <div className="hidden md:inline-flex justify-self-end">
+          <div className="hidden md:inline-flex justify-self-end items-center gap-4">
             {loading ? (
-              <div className="w-24 h-10 bg-gray-200 rounded-lg animate-pulse" />
-            ) : user ? (
-              // --- 3. The "Hop off" button now opens the logout modal ---
               <button
                 type="button"
-                onClick={openLogoutModal}
-                className="card-nav-cta-button border-0 rounded-lg px-5 py-2 text-sm font-semibold cursor-pointer transition-colors duration-300 bg-red-500 text-white hover:bg-red-600"
+                disabled
+                className="card-nav-cta-button border-0 rounded-lg px-5 py-2 text-sm font-semibold cursor-not-allowed bg-gray-200 text-gray-400"
               >
-                Hop off
+                {ctaText}
               </button>
+            ) : user ? (
+              <div className="flex items-center gap-4">
+                {isAdmin && (
+                  <Link href="/admin" aria-label="Go to admin dashboard" className="p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-black transition-colors">
+                    <LayoutDashboard size={20} />
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={openLogoutModal}
+                  className="card-nav-cta-button border-0 rounded-lg px-5 py-2 text-sm font-semibold cursor-pointer transition-colors duration-300 bg-red-500 text-white hover:bg-red-600"
+                >
+                  Hop off
+                </button>
+              </div>
             ) : (
-              // --- 4. The "Hop on" button now opens the login modal ---
               <button
                 type="button"
                 onClick={openAuthModal}
@@ -228,7 +257,6 @@ const CardNav: FC<CardNavProps> = ({
           </div>
         </div>
 
-        {/* --- (The expandable card content remains the same) --- */}
         <div
           className={`card-nav-content absolute left-0 right-0 top-[60px] bottom-0 p-2 flex flex-col items-stretch gap-2 justify-start z-[1] ${
             isExpanded ? 'visible pointer-events-auto' : 'invisible pointer-events-none'
