@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
 
   // The images property is where we configure external image sources.
   images: {
-    // We add the allowed hostname to the domains array.
-    domains: ['placehold.co'],
+    // Add the allowed hostname to the domains array.
+    domains: ['placehold.co', 'lh3.googleusercontent.com'],
   },
   
   /* config options here */

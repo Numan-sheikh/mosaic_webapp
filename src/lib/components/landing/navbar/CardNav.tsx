@@ -1,11 +1,11 @@
 "use client";
 
-import React, { FC, useLayoutEffect, useRef, useState } from 'react';
+import React, { FC, useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { gsap } from 'gsap';
-import { ArrowUpRight } from 'lucide-react'; // Using lucide-react for the icon
+import { ArrowUpRight } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext'; // 1. Import the useAuth hook
 
-// --- TypeScript Type Definitions ---
-
+// --- TypeScript Type Definitions (No changes needed) ---
 type CardNavLink = {
   label: string;
   href: string;
@@ -33,7 +33,6 @@ export interface CardNavProps {
 }
 
 // --- Component Implementation ---
-
 const CardNav: FC<CardNavProps> = ({
   logo,
   logoAlt = 'Logo',
@@ -46,85 +45,80 @@ const CardNav: FC<CardNavProps> = ({
   buttonTextColor,
   ctaText = 'Hop On'
 }) => {
+  // 2. Get user state and all necessary modal functions from the AuthContext
+  const { user, loading, openAuthModal, openLogoutModal } = useAuth();
+
+  // The handleSignOut function is no longer needed here as it's handled by the modal
+
+  // --- (All existing animation logic remains the same) ---
   const [isHamburgerOpen, setIsHamburgerOpen] = useState<boolean>(false);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const navRef = useRef<HTMLDivElement | null>(null);
   const cardsRef = useRef<HTMLDivElement[]>([]);
   const tlRef = useRef<gsap.core.Timeline | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
 
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  
   const calculateHeight = (): number => {
     const navEl = navRef.current;
     if (!navEl) return 260;
-
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     if (isMobile) {
       const contentEl = navEl.querySelector('.card-nav-content') as HTMLElement;
       if (contentEl) {
-        // Temporarily make the content visible to measure its height
         const wasVisible = contentEl.style.visibility;
         const wasPointerEvents = contentEl.style.pointerEvents;
         const wasPosition = contentEl.style.position;
         const wasHeight = contentEl.style.height;
-
         contentEl.style.visibility = 'visible';
         contentEl.style.pointerEvents = 'auto';
         contentEl.style.position = 'static';
         contentEl.style.height = 'auto';
-
         const topBar = 60;
         const padding = 16;
         const contentHeight = contentEl.scrollHeight;
-        
-        // Restore original styles
         contentEl.style.visibility = wasVisible;
         contentEl.style.pointerEvents = wasPointerEvents;
         contentEl.style.position = wasPosition;
         contentEl.style.height = wasHeight;
-
         return topBar + contentHeight + padding;
       }
     }
-    return 260; // Default height for desktop
+    return 260;
   };
-
   const createTimeline = (): gsap.core.Timeline | null => {
     const navEl = navRef.current;
     if (!navEl) return null;
-
     gsap.set(navEl, { height: 60, overflow: 'hidden' });
     gsap.set(cardsRef.current, { y: 50, opacity: 0 });
-
     const tl = gsap.timeline({ paused: true });
-
     tl.to(navEl, {
       height: calculateHeight,
       duration: 0.4,
       ease
     });
-
     tl.to(cardsRef.current, { y: 0, opacity: 1, duration: 0.4, ease, stagger: 0.08 }, '-=0.1');
-
     return tl;
   };
-
   useLayoutEffect(() => {
+    if (!hasMounted) return;
     const tl = createTimeline();
     tlRef.current = tl;
-
     return () => {
       tl?.kill();
       tlRef.current = null;
     };
-  }, [ease, items]);
-
+  }, [hasMounted, ease, items]);
   useLayoutEffect(() => {
+    if (!hasMounted) return;
     const handleResize = () => {
       if (!tlRef.current) return;
-
       if (isExpanded) {
         const newHeight = calculateHeight();
         gsap.set(navRef.current, { height: newHeight });
-
         tlRef.current.kill();
         const newTl = createTimeline();
         if (newTl) {
@@ -139,11 +133,9 @@ const CardNav: FC<CardNavProps> = ({
         }
       }
     };
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isExpanded, ease, items]); // Added dependencies for correctness
-
+  }, [isExpanded, hasMounted, ease, items]);
   const toggleMenu = () => {
     const tl = tlRef.current;
     if (!tl) return;
@@ -157,25 +149,31 @@ const CardNav: FC<CardNavProps> = ({
       tl.reverse();
     }
   };
-
   const setCardRef = (i: number) => (el: HTMLDivElement | null) => {
     if (el) cardsRef.current[i] = el;
   };
-
+  if (!hasMounted) {
+    return (
+        <div className={`card-nav-container absolute left-1/2 -translate-x-1/2 w-[90%] max-w-[800px] z-[99] top-[1.2em] md:top-[2em] ${className}`}>
+            <div className="h-[60px] w-full rounded-xl shadow-md" style={{ backgroundColor: baseColor }}></div>
+        </div>
+    );
+  }
   const isLogoPath = typeof logo === 'string' && logo.includes('/');
+
 
   return (
     <div
-      className={`card-nav-container absolute left-1/2 -translate-x-1/2 w-[90%] max-w-[800px] z-[99] top-[1.2em] md:top-[2em] ${className}`}
+      className={`card-nav-container absolute left-1/2 -translate-x-1/2 w-[95%] max-w-[1100px] z-[99] top-[1.2em] md:top-[2em] ${className}`}
     >
       <nav
         ref={navRef}
         className={`card-nav ${isExpanded ? 'open' : ''} block h-[60px] p-0 rounded-xl shadow-md relative overflow-hidden will-change-[height]`}
         style={{ backgroundColor: baseColor }}
       >
-        <div className="card-nav-top absolute inset-x-0 top-0 h-[60px] flex items-center justify-between p-2 pl-[1.1rem] z-[2]">
+        <div className="card-nav-top absolute inset-x-0 top-0 h-[60px] grid grid-cols-3 items-center px-4 z-[2]">
           <div
-            className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''} group h-full flex flex-col items-center justify-center cursor-pointer gap-[6px] order-2 md:order-none`}
+            className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''} group h-full flex flex-col items-center justify-center cursor-pointer gap-[6px] justify-self-start`}
             onClick={toggleMenu}
             role="button"
             aria-label={isExpanded ? 'Close menu' : 'Open menu'}
@@ -194,7 +192,7 @@ const CardNav: FC<CardNavProps> = ({
             />
           </div>
 
-          <div className="logo-container flex items-center md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none">
+          <div className="logo-container flex items-center justify-self-center">
             {isLogoPath ? (
               <img src={logo} alt={logoAlt} className="logo h-[28px]" />
             ) : (
@@ -203,16 +201,34 @@ const CardNav: FC<CardNavProps> = ({
               </span>
             )}
           </div>
-
-          <button
-            type="button"
-            className="card-nav-cta-button hidden md:inline-flex border-0 rounded-lg px-5 py-2 text-sm font-semibold cursor-pointer transition-colors duration-300"
-            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
-          >
-            {ctaText}
-          </button>
+          
+          <div className="hidden md:inline-flex justify-self-end">
+            {loading ? (
+              <div className="w-24 h-10 bg-gray-200 rounded-lg animate-pulse" />
+            ) : user ? (
+              // --- 3. The "Hop off" button now opens the logout modal ---
+              <button
+                type="button"
+                onClick={openLogoutModal}
+                className="card-nav-cta-button border-0 rounded-lg px-5 py-2 text-sm font-semibold cursor-pointer transition-colors duration-300 bg-red-500 text-white hover:bg-red-600"
+              >
+                Hop off
+              </button>
+            ) : (
+              // --- 4. The "Hop on" button now opens the login modal ---
+              <button
+                type="button"
+                onClick={openAuthModal}
+                className="card-nav-cta-button inline-flex items-center justify-center border-0 rounded-lg px-5 py-2 text-sm font-semibold cursor-pointer transition-colors duration-300"
+                style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+              >
+                {ctaText}
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* --- (The expandable card content remains the same) --- */}
         <div
           className={`card-nav-content absolute left-0 right-0 top-[60px] bottom-0 p-2 flex flex-col items-stretch gap-2 justify-start z-[1] ${
             isExpanded ? 'visible pointer-events-auto' : 'invisible pointer-events-none'
@@ -251,3 +267,4 @@ const CardNav: FC<CardNavProps> = ({
 };
 
 export default CardNav;
+
