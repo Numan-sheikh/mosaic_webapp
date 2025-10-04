@@ -1,14 +1,14 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-
-  // The images property is where we configure external image sources.
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
-    // Add the allowed hostname to the domains array.
-    domains: ['placehold.co', 'lh3.googleusercontent.com'],
+    // Add the Firebase Storage domain to the list of allowed hostnames.
+    domains: [
+      'placehold.co', 
+      'lh3.googleusercontent.com', 
+      'firebasestorage.googleapis.com',
+    ],
   },
-  
-  /* config options here */
 };
 
-export default nextConfig;
+module.exports = nextConfig;
+

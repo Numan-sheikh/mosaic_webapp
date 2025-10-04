@@ -4,12 +4,15 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, FC } 
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
-import LoginModal from '@/lib/components/auth/LoginModal';
-import LogoutModal from '@/lib/components/auth/LogoutModal';
+import LoginModal from '@/lib/components/auth/LoginModal'; // Corrected path
+import LogoutModal from '@/lib/components/auth/LogoutModal'; // Corrected path
+
+// --- NEW: Define the possible user roles ---
+export type UserRole = 'user' | 'editor' | 'subadmin' | 'admin' | 'superadmin';
 
 interface AuthContextType {
   user: User | null;
-  isAdmin: boolean;
+  userRole: UserRole | null; // Changed from isAdmin to userRole
   loading: boolean;
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
@@ -21,7 +24,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ 
   user: null, 
-  isAdmin: false,
+  userRole: null, // Default to null
   loading: true,
   isAuthModalOpen: false,
   openAuthModal: () => {},
@@ -33,7 +36,7 @@ const AuthContext = createContext<AuthContextType>({
 
 const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null); // State for the user's role
   const [loading, setLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -43,54 +46,41 @@ const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const openLogoutModal = () => setIsLogoutModalOpen(true);
   const closeLogoutModal = () => setIsLogoutModalOpen(false);
 
-  // --- RESTRUCTURED LOGIC ---
-
   // Effect 1: Handles only Firebase Authentication state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setLoading(false); // Set loading to false once we know if a user is logged in or not
+      // We set loading to false in the second effect now
     });
-    // Cleanup the auth listener on unmount
     return () => unsubscribe();
   }, []);
 
-  // Effect 2: Handles only Firestore role checking, and runs ONLY when the user object changes
+  // Effect 2: Handles only Firestore role checking
   useEffect(() => {
-    // Condition 1: If there is no user, they cannot be an admin.
     if (!user) {
-      setIsAdmin(false);
-      return; // Stop here.
+      setUserRole(null);
+      setLoading(false);
+      return;
     }
 
-    // Condition 2: If there is a user, set up a real-time listener for their document in Firestore.
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
-      // Check if the user's document actually exists in the database.
       if (snapshot.exists()) {
-        // If it exists, check the 'role' field.
-        // This is the explicit condition for being an admin.
-        if (snapshot.data().role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          // If the role is anything else ('user', undefined, etc.), they are not an admin.
-          setIsAdmin(false);
-        }
+        // Read the role from the document and set it
+        setUserRole(snapshot.data().role as UserRole);
       } else {
-        // If the document doesn't exist at all, they are not an admin.
-        setIsAdmin(false);
+        // If no document exists, they are a standard user
+        setUserRole('user');
       }
+      setLoading(false);
     });
 
-    // Cleanup the Firestore listener when the user logs out (or the component unmounts)
     return () => unsubscribe();
   }, [user]); // This effect now correctly depends on the user object
 
-  // --- END OF RESTRUCTURED LOGIC ---
-
   const value = { 
     user, 
-    isAdmin, 
+    userRole, 
     loading, 
     isAuthModalOpen, 
     openAuthModal, 

@@ -46,8 +46,10 @@ const CardNav: FC<CardNavProps> = ({
   buttonTextColor,
   ctaText = 'Hop On'
 }) => {
-  const { user, isAdmin, loading, openAuthModal, openLogoutModal } = useAuth();
+  // --- THE FIX: Destructure 'userRole' instead of 'isAdmin' ---
+  const { user, userRole, loading, openAuthModal, openLogoutModal } = useAuth();
 
+  // --- (All existing animation logic remains the same) ---
   const [isHamburgerOpen, setIsHamburgerOpen] = useState<boolean>(false);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const navRef = useRef<HTMLDivElement | null>(null);
@@ -155,10 +157,6 @@ const CardNav: FC<CardNavProps> = ({
     if (el) cardsRef.current[i] = el;
   };
   
-  const isLogoPath = typeof logo === 'string' && logo.includes('/');
-
-  // --- THE FIX: Create a visually identical but non-interactive skeleton for the initial render ---
-  // This will be rendered on the server and on the first client paint to prevent hydration errors and feel instant.
   if (!hasMounted) {
     return (
       <div className={`card-nav-container absolute left-1/2 -translate-x-1/2 w-[95%] max-w-[1100px] z-[99] top-[1.2em] md:top-[2em] ${className}`}>
@@ -179,6 +177,8 @@ const CardNav: FC<CardNavProps> = ({
       </div>
     );
   }
+
+  const isLogoPath = typeof logo === 'string' && logo.includes('/');
 
   return (
     <div
@@ -231,8 +231,9 @@ const CardNav: FC<CardNavProps> = ({
               </button>
             ) : user ? (
               <div className="flex items-center gap-4">
-                {isAdmin && (
-                  <Link href="/admin" aria-label="Go to admin dashboard" className="p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-black transition-colors">
+                {/* --- THE FIX: Check userRole instead of isAdmin --- */}
+                {(userRole === 'admin' || userRole === 'superadmin') && (
+                  <Link href="/dashboard" aria-label="Go to admin dashboard" className="p-2 rounded-full text-gray-600 hover:bg-gray-100 hover:text-black transition-colors">
                     <LayoutDashboard size={20} />
                   </Link>
                 )}
