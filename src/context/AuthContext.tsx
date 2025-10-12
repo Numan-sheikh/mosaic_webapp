@@ -2,17 +2,17 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, FC } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
-import LoginModal from '@/lib/components/auth/LoginModal'; // Corrected path
-import LogoutModal from '@/lib/components/auth/LogoutModal'; // Corrected path
+import { auth } from '@/lib/firebase/config';
+import { onUserRoleChange } from '@/lib/firebase/firestore'; // 1. Import the new service function
+import LoginModal from '@/lib/components/auth/LoginModal';       // Corrected path
+import LogoutModal from '@/lib/components/auth/LogoutModal';     // Corrected path
 
-// --- NEW: Define the possible user roles ---
+// (Interfaces and createContext remain the same)
 export type UserRole = 'user' | 'editor' | 'subadmin' | 'admin' | 'superadmin';
 
 interface AuthContextType {
   user: User | null;
-  userRole: UserRole | null; // Changed from isAdmin to userRole
+  userRole: UserRole | null;
   loading: boolean;
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
@@ -24,7 +24,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ 
   user: null, 
-  userRole: null, // Default to null
+  userRole: null,
   loading: true,
   isAuthModalOpen: false,
   openAuthModal: () => {},
@@ -34,9 +34,10 @@ const AuthContext = createContext<AuthContextType>({
   closeLogoutModal: () => {},
 });
 
+
 const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null); // State for the user's role
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -50,7 +51,7 @@ const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      // We set loading to false in the second effect now
+      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -59,24 +60,17 @@ const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   useEffect(() => {
     if (!user) {
       setUserRole(null);
-      setLoading(false);
       return;
     }
 
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
-      if (snapshot.exists()) {
-        // Read the role from the document and set it
-        setUserRole(snapshot.data().role as UserRole);
-      } else {
-        // If no document exists, they are a standard user
-        setUserRole('user');
-      }
-      setLoading(false);
+    // 2. Use the new service function to listen for role changes.
+    // The complex Firestore logic is now neatly abstracted away.
+    const unsubscribe = onUserRoleChange(user.uid, (role) => {
+      setUserRole(role);
     });
 
     return () => unsubscribe();
-  }, [user]); // This effect now correctly depends on the user object
+  }, [user]);
 
   const value = { 
     user, 
